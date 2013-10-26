@@ -3,7 +3,27 @@ import Window
 
 clickLocations = foldp (::) [] (sampleOn Mouse.clicks Mouse.position)
 
-clicks num =  text <| Text.height 50 <| toText <| show num
+-- Data
+
+data Player = X | O
+type Space  = Maybe Player
+type Board = { tl:Space, tm:Space, tr:Space,
+                l:Space,  m:Space,  r:Space,
+               bl:Space, bm:Space, br:Space }
+
+bigLetter l = text <| Text.height 150 <| toText l
+
+drawSpace (w,h) space = 
+  case space of 
+    Nothing -> spacer (round (toFloat w / 3)) (round (toFloat h / 3))
+    Just p -> 
+      case p of
+        X -> bigLetter "x"
+        O -> bigLetter "o"
+
+--  Board
+
+clicks num = text <| Text.height 50 <| toText <| show num
 
 drawBoard (w,h) = 
       --style : LineStyle
@@ -25,6 +45,7 @@ drawBoard (w,h) =
 
   in collage w h <| vbars ++ hbars
 
+-- 
 display (w,h) locs =
   let tri (x,y) = 
           ngon 3 70 |> filled (hsva (toFloat x) 1 1 0.7)
