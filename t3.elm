@@ -12,14 +12,18 @@ input = lift Input Mouse.position
 
 data Player = X | O
 type Space  = Maybe Player
-type Row    = {l:Space, m:Space, r:Space}
-type Board  = {top:Row, mid:Row, bot:Row}
+type Row    = { l:Space, m:Space, r:Space }
+type Board  = { top:Row, mid:Row, bot:Row }
+type Game   = { p:Player, board:Board }
 
 initialBoard : Board
 initialBoard = 
   let initRow = { l=Nothing, m=Nothing, r=Nothing }
   in {top=initRow, mid=initRow, bot=initRow}
-  
+
+initialGame : Game
+initialGame = {p=X, board=initialBoard }
+
 toList : Board -> [Space]
 toList {top, mid, bot} = 
   -- row to list
@@ -40,52 +44,53 @@ drawSpace (w,h) space =
 
 drawPieces : (Int,Int) -> Board -> Element
 drawPieces dims {top, mid, bot} = 
-  let drawRow {l, m, r} = 
-    beside (drawSpace dims m) (drawSpace dims r)
-    |> beside (drawSpace dims l)
-  in above (drawRow mid) (drawRow bot) |> above (drawRow top)
+  let ds = drawSpace dims
+      drawRow {l, m, r} = flow right [ds l, ds m, ds r]
+  in flow down [drawRow top, drawRow mid, drawRow bot]
 
-drawBoard : (Int,Int) -> Board -> Element
-drawBoard (w,h) board = 
-  let style = { color=(hsva 99 1 2 1.0), 
+drawBoard : (Int,Int) -> Game -> Element
+drawBoard (w,h) {p, board} = 
+  let style = { color=(hsva 18 1 2 1.0), 
                 width=10, 
                 cap=Round, 
                 join=Smooth, 
                 dashing=[], 
                 dashOffset=0 }
   
-      path p1 p2 = 
-          segment p1 p2
-          |> traced style
+      path p1 p2 = segment p1 p2 |> traced style
+          
       -- center of the window is (0,0). I don't want to talk about it.
-      vbars = path (toFloat w / 6,      -1 * toFloat h) 
-                   (toFloat w / 6,      toFloat h) :: 
+      vbars = [path (toFloat w / 6,      -1 * toFloat h) 
+                   (toFloat w / 6,      toFloat h),
               path (-1 * toFloat w / 6, -1 * toFloat h) 
-                   (-1 * toFloat w / 6, toFloat h) :: 
-              []
-      hbars = path (toFloat w,      toFloat h / 6) 
-                   (-1 * toFloat w, toFloat h / 6) :: 
+                   (-1 * toFloat w / 6, toFloat h)]
+              
+      hbars = [path (toFloat w,      toFloat h / 6) 
+                   (-1 * toFloat w, toFloat h / 6), 
               path (toFloat w,      -1 * toFloat h / 6) 
-                   (-1 * toFloat w, -1 * toFloat h / 6) :: 
-              []
+                   (-1 * toFloat w, -1 * toFloat h / 6)]
 
   in layers [ collage w h <| vbars ++ hbars,
               drawPieces (w,h) board ]
 
 -- Update
 
-fullGame = 
-  let row = {l=Just X, m=Just O, r=Just X}
-      erow = {l=Nothing, m=Nothing, r=Nothing}
-  in {top=row, mid=row, bot=row}
+updateBoard : Board -> Input -> Player -> Board
+updateBoard {top,mid,bot} input p = fullBoard
 
-stepGame : Input -> Board -> Board
-stepGame input board = fullGame
+fullBoard = 
+  let row1 = {l=Just X, m=Just O, r=Just X}
+      row2 = {l=Just X, m=Just X, r=Just O}
+      row3 = {l=Just O, m=Just X, r=Just O}
+  in {top=row1, mid=row2, bot=row3}
 
-gameState = foldp stepGame initialBoard inputs
+stepGame : Input -> Game -> Game
+stepGame input {p, board} =
+  let newP = case p of X -> O
+                       O -> X
+      newBoard = updateBoard board input p
+  in {p=newP, board=newBoard}
 
-display : (Int, Int) -> Board -> Element
-display (w,h) board = drawBoard (w,h) board
+gameState = foldp stepGame initialGame inputs
 
-
-main = lift2 display Window.dimensions gameState
+main = lift2 drawBoard Window.dimensions gameState
