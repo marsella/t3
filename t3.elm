@@ -29,6 +29,13 @@ toList {top, mid, bot} =
   -- row to list
   let rtl {l, m, r} = l :: m :: r :: []
   in rtl top ++ rtl mid ++ rtl bot
+  
+fromList : [Space] -> Board
+fromList spaces =
+  case spaces of
+    a :: b :: c :: d :: e :: f :: g :: h :: i :: [] -> 
+         {top={l=a,m=b,r=c},mid={l=d,m=e,r=f},bot={l=g,m=h,r=i}}
+    _ -> initialBoard
 
 -- Drawing
 
@@ -50,7 +57,7 @@ drawPieces dims {top, mid, bot} =
 
 drawBoard : (Int,Int) -> Game -> Element
 drawBoard (w,h) {p, board} = 
-  let style = { color=(hsva 18 1 2 1.0), 
+  let style = { color=(hsva 18 1 1 1.0), 
                 width=10, 
                 cap=Round, 
                 join=Smooth, 
@@ -76,12 +83,18 @@ drawBoard (w,h) {p, board} =
 -- Update
 
 updateBoard : Board -> Input -> Player -> Board
-updateBoard {top,mid,bot} input p = fullBoard
+--updateBoard {top,mid,bot} input p = fullBoard
+updateBoard board input p = 
+  case (toList board) of
+    (Just X :: a :: Nothing :: bs) -> 
+      fromList (Just X :: a :: Just p :: bs)
+    (Just X :: bs) -> fullBoard 
+    (Nothing :: bs) -> fromList (Just p :: bs)
 
 fullBoard = 
-  let row1 = {l=Just X, m=Just O, r=Just X}
+  let row1 = {l=Just X, m=Just O, r=Just O}
       row2 = {l=Just X, m=Just X, r=Just O}
-      row3 = {l=Just O, m=Just X, r=Just O}
+      row3 = {l=Just O, m=Just X, r=Just X}
   in {top=row1, mid=row2, bot=row3}
 
 stepGame : Input -> Game -> Game
