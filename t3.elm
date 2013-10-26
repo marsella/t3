@@ -28,21 +28,31 @@ toList {top, mid, bot} =
 
 -- Drawing
 
-bigLetter : String -> Element
-bigLetter l = text <| Text.height 150 <| toText l
-
 drawSpace : (Int, Int) -> Space -> Element
 drawSpace (w,h) space = 
-  case space of 
-    Nothing -> spacer (round (toFloat w / 3)) (round (toFloat h / 3))
-    Just p -> 
-      case p of
-        X -> bigLetter "x"
-        O -> bigLetter "o"
+  let bigLetter l = text <| Text.height 150 <| toText l
+      dim x = round (toFloat x / 3)
+      cont s = container (dim w) (dim h) middle (bigLetter s)
+  in case space of 
+    Nothing -> spacer (dim w) (dim h)
+    Just X -> cont "x"
+    Just O -> cont "o"
+
+drawPieces : (Int,Int) -> Board -> Element
+drawPieces dims {top, mid, bot} = 
+  let drawRow {l, m, r} = 
+    beside (drawSpace dims m) (drawSpace dims r)
+    |> beside (drawSpace dims l)
+  in above (drawRow mid) (drawRow bot) |> above (drawRow top)
 
 drawBoard : (Int,Int) -> Board -> Element
 drawBoard (w,h) board = 
-  let style = { color=(hsva 23 1 2 1.0), width=10, cap=Round, join=Smooth, dashing=[], dashOffset=0 }
+  let style = { color=(hsva 99 1 2 1.0), 
+                width=10, 
+                cap=Round, 
+                join=Smooth, 
+                dashing=[], 
+                dashOffset=0 }
   
       path p1 p2 = 
           segment p1 p2
@@ -59,12 +69,18 @@ drawBoard (w,h) board =
                    (-1 * toFloat w, -1 * toFloat h / 6) :: 
               []
 
-  in collage w h <| vbars ++ hbars
+  in layers [ collage w h <| vbars ++ hbars,
+              drawPieces (w,h) board ]
 
 -- Update
 
+fullGame = 
+  let row = {l=Just X, m=Just O, r=Just X}
+      erow = {l=Nothing, m=Nothing, r=Nothing}
+  in {top=row, mid=row, bot=row}
+
 stepGame : Input -> Board -> Board
-stepGame input board = board
+stepGame input board = fullGame
 
 gameState = foldp stepGame initialBoard inputs
 
