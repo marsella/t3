@@ -14,7 +14,10 @@ data Player = X | O
 type Space  = Maybe Player
 type Row    = { l:Space, m:Space, r:Space }
 type Board  = { top:Row, mid:Row, bot:Row }
-type Game   = { p:Player, board:Board }
+type Game   = { p:Player, board:Board}
+
+dims : Float
+dims = 620
 
 initialBoard : Board
 initialBoard = 
@@ -22,7 +25,7 @@ initialBoard =
   in {top=initRow, mid=initRow, bot=initRow}
 
 initialGame : Game
-initialGame = {p=X, board=initialBoard }
+initialGame = {p=X, board=initialBoard}
 
 toList : Board -> [Space]
 toList {top, mid, bot} = 
@@ -37,7 +40,7 @@ fromList spaces =
          {top={l=a,m=b,r=c},mid={l=d,m=e,r=f},bot={l=g,m=h,r=i}}
     _ -> initialBoard
 
--- Drawing
+-- Display
 
 drawSpace : (Int, Int) -> Space -> Element
 drawSpace (w,h) space = 
@@ -76,32 +79,61 @@ drawBoard (w,h) {p, board} =
                    (-1 * toFloat w, toFloat h / 6), 
               path (toFloat w,      -1 * toFloat h / 6) 
                    (-1 * toFloat w, -1 * toFloat h / 6)]
+      coords = asText (w,h)
 
   in layers [ collage w h <| vbars ++ hbars,
+              coords,
               drawPieces (w,h) board ]
 
 -- Update
+detectBox : Input -> (Int,Int)
+detectBox (Input (x,y)) = 
+  let cond l g = 
+        if | (toFloat l) < (g / 3) -> 1
+           | (toFloat l) < (2 * g / 3) -> 2
+           | (toFloat l) < g -> 3
+           | otherwise -> 4
+      row = cond y dims
+      col = cond x dims
+  in (col, row)
 
-updateBoard : Board -> Input -> Player -> Board
---updateBoard {top,mid,bot} input p = fullBoard
-updateBoard board input p = 
-  case (toList board) of
-    (Just X :: a :: Nothing :: bs) -> 
-      fromList (Just X :: a :: Just p :: bs)
-    (Just X :: bs) -> fullBoard 
-    (Nothing :: bs) -> fromList (Just p :: bs)
+
+updateBoard : Game -> Input -> Board
+updateBoard {p, board} input = 
+  let 
+    {top, mid, bot} = board
+    placeRow : Int -> Row -> Row
+    placeRow c {l, m, r} = 
+      if | c == 1 -> {l=Just p, m=m, r=r}
+         | c == 2 -> {l=l, m=Just p, r=r}
+         | c == 3 -> {l=l, m=m, r=Just p}
+  in case (detectBox input) of 
+    (c, 1) -> {top=(placeRow c top), mid=mid, bot=bot}
+    (c, 2) -> {top=top, mid=placeRow c mid, bot=bot}
+    (c, 3) -> {top=top, mid=mid, bot=placeRow c bot}
+    _  -> initialBoard
 
 fullBoard = 
-  let row1 = {l=Just X, m=Just O, r=Just O}
-      row2 = {l=Just X, m=Just X, r=Just O}
+  let row1 = {l=Just X, m=Just X, r=Just O}
+      row2 = {l=Just X, m=Just O, r=Just X}
       row3 = {l=Just O, m=Just X, r=Just X}
   in {top=row1, mid=row2, bot=row3}
+  
+third = 
+  let row1 = {l=Just X, m=Just X, r=Just O}
+      erow = {l=Nothing, m=Nothing, r=Nothing}
+  in {top=row1, mid=erow, bot=erow}
+
+twothird = 
+  let row1 = {l=Just X, m=Just X, r=Just O}
+      erow = {l=Nothing, m=Nothing, r=Nothing}
+  in {top=row1, mid=row1, bot=erow}
 
 stepGame : Input -> Game -> Game
 stepGame input {p, board} =
   let newP = case p of X -> O
                        O -> X
-      newBoard = updateBoard board input p
+      newBoard = updateBoard {p=p, board=board} input
   in {p=newP, board=newBoard}
 
 gameState = foldp stepGame initialGame inputs
