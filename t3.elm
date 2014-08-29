@@ -1,5 +1,6 @@
 import Mouse
 import Window
+import Text
 
 inputs = sampleOn Mouse.clicks (lift Input Mouse.position)
 
@@ -44,7 +45,7 @@ fromList spaces =
 
 drawSpace : Space -> Element
 drawSpace space = 
-  let bigLetter l = text <| Text.height 150 <| toText l
+  let bigLetter l = centered <| Text.height 150 <| toText l
       dim x = round (x / 3)
       cont s = container (dim dims) (dim dims) middle (bigLetter s)
   in case space of 
@@ -60,7 +61,7 @@ drawPieces {top, mid, bot} =
 
 drawBoard : Game -> Element
 drawBoard {p, board} = 
-  let style = { color=(hsva 18 3 1 1.0), 
+  let style = { color=(hsl 1 0.1 0.5),
                 width=10, 
                 cap=Round, 
                 join=Smooth, 
